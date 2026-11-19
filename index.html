@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Panda Royale Scoreboard</title>
+<style>
+:root{--bg:#f4f3ef;--card:#fff;--tx:#1d1d1b;--mut:#6b6b66;--line:#e2e0d9;--acc:#2f6b4f;--up:#1f8a4c;--dn:#c0392b;
+--y:#fbe3b8;--p:#e3cdf0;--b:#c9ddf5;--r:#f6c6c6;--g:#cdebc6;--c:#e6e6e6;--k:#f9cfe0;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#171815;--card:#23241f;--tx:#f0efe9;--mut:#a3a29a;--line:#3a3b35;--acc:#6fcf9c;--up:#5fd68c;--dn:#ff8b7d;
+--y:#5a4a2a;--p:#4b3a58;--b:#2f435c;--r:#5c3535;--g:#38502f;--c:#444;--k:#5c3a49}}
+:root[data-theme="dark"]{--bg:#171815;--card:#23241f;--tx:#f0efe9;--mut:#a3a29a;--line:#3a3b35;--acc:#6fcf9c;--up:#5fd68c;--dn:#ff8b7d;--y:#5a4a2a;--p:#4b3a58;--b:#2f435c;--r:#5c3535;--g:#38502f;--c:#444;--k:#5c3a49}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.4 -apple-system,system-ui,"Segoe UI",Roboto,sans-serif;max-width:560px;margin:0 auto;padding:12px 12px 84px}
+h1{font-size:20px;margin:4px 0 10px}
+.tabs{position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px);z-index:5}
+.tabs button{flex:1;padding:14px 0;border:0;background:none;color:var(--mut);font-size:15px;font-weight:600}
+.tabs button.on{color:var(--acc)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:10px}
+.row{display:flex;align-items:center;gap:10px}
+.rank{width:28px;font-weight:700;font-size:18px;text-align:center}
+.nm{flex:1;font-weight:600}
+.tot{font-weight:700;font-size:20px}
+.mv{width:38px;font-size:13px;font-weight:600;text-align:right}
+.up{color:var(--up)}.dn{color:var(--dn)}.fl{color:var(--mut)}
+.mut{color:var(--mut);font-size:13px}
+.hist{display:none;margin-top:8px;overflow-x:auto}
+.open .hist{display:block}
+table{border-collapse:collapse;font-size:13px}
+td,th{padding:3px 7px;text-align:center;border-bottom:1px solid var(--line)}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;margin-bottom:6px}
+.chip{flex:0 0 auto;min-width:42px;padding:8px 0;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--tx);font-weight:600}
+.chip.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+.chip.has{border-color:var(--acc)}
+.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:8px}
+.grid label{display:block;font-size:11px;text-align:center;color:var(--mut);margin-bottom:2px}
+.grid input{width:100%;padding:9px 0;text-align:center;border:1px solid var(--line);border-radius:8px;font-size:16px;color:var(--tx)}
+.grid .y input{background:var(--y)}.grid .p input{background:var(--p)}.grid .b input{background:var(--b)}.grid .r input{background:var(--r)}.grid .g input{background:var(--g)}.grid .c input{background:var(--c)}.grid .k input{background:var(--k)}
+.grid button.neg{width:100%;margin-top:4px;padding:6px 0;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--tx);font-size:15px;font-weight:700}
+.btn{padding:10px 14px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--tx);font-size:15px;font-weight:600}
+.btn.sm{padding:6px 10px;font-size:13px}
+.btn.pri{background:var(--acc);color:#fff;border-color:var(--acc)}
+input.txt{flex:1;padding:10px;border:1px solid var(--line);border-radius:10px;font-size:16px;background:var(--card);color:var(--tx)}
+.pity{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.pity span{background:var(--k);border-radius:20px;padding:4px 10px;font-size:14px}
+.pity.dr span{background:var(--y)}
+.empty{text-align:center;color:var(--mut);padding:30px 10px}
+</style>
+</head>
+<body>
+<h1>🐼 Panda Royale</h1>
+<div id="bar"></div>
+<div id="app"></div>
+<div class="tabs">
+  <button data-t="board">Leaderboard</button>
+  <button data-t="score">Enter scores</button>
+  <button data-t="players">Players</button>
+</div>
+<script>
+const COLS=[["y","Y","Yellow"],["p","P×2","Purple ×2"],["b","B","Blue"],["r","R","Red"],["g","G","Green"],["c","C","Clear"],["k","Pk","Pink"]];
+const KEY="panda-royale-v1";
+let S={players:[],scores:{},round:1};
+let tab="board",openId=null;
+
+const DB="https://panda-royale-ultra-scoresheet-default-rtdb.asia-southeast1.firebasedatabase.app";
+const SESKEY="panda-royale-session";
+let ses={mode:null,code:""},st="",es=null,poll=null,timer=null;
+function norm(){S.players=(S.players||[]).filter(Boolean);S.scores=S.scores||{};S.round=S.round||1}
+function load(){try{const v=localStorage.getItem(KEY);if(v)S=JSON.parse(v);const q=localStorage.getItem(SESKEY);if(q)ses=JSON.parse(q)}catch(e){}norm()}
+function saveSes(){try{localStorage.setItem(SESKEY,JSON.stringify(ses))}catch(e){}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}
+  if(ses.mode==="host"){clearTimeout(timer);timer=setTimeout(push,400)}}
+async function push(){
+  try{const r=await fetch(DB+"/games/"+ses.code+".json",{method:"PUT",body:JSON.stringify(S)});setSt(r.ok?"Synced ✓":"Sync error")}
+  catch(e){setSt("Offline, retrying…");clearTimeout(timer);timer=setTimeout(push,3000)}}
+async function pull(){
+  try{const r=await fetch(DB+"/games/"+ses.code+".json");const d=await r.json();
+    if(d){S=d;norm();setSt("Live");render()}else setSt("Waiting for the host…")}
+  catch(e){setSt("Offline")}}
+function listen(){
+  if(es)es.close();clearInterval(poll);
+  try{es=new EventSource(DB+"/games/"+ses.code+".json");es.addEventListener("put",pull);es.addEventListener("patch",pull)}catch(e){}
+  poll=setInterval(pull,8000);pull()}
+function setSt(x){st=x;bar()}
+function bar(){
+  const b=document.getElementById("bar");
+  if(!ses.mode){b.innerHTML="";return}
+  const who=ses.mode==="local"?"Solo (no sync)":"Room <b>"+ses.code+"</b> · "+(ses.mode==="host"?"Host":"Viewer");
+  b.innerHTML='<div class="row mut" style="margin-bottom:8px"><span style="flex:1">'+who+(st?" · "+st:"")+'</span>'+(ses.mode==="host"?'<button class="btn sm" data-b="copy">Copy link</button>':"")+'<button class="btn sm" data-b="leave">Leave</button></div>'}
+function start(){render();if(ses.mode==="viewer")listen();if(ses.mode==="host")push()}
+function init(){
+  const h=location.hash.slice(1).toUpperCase().replace(/[^A-Z0-9]/g,"");
+  if(h&&!(ses.mode==="host"&&ses.code===h)){ses={mode:"viewer",code:h};saveSes();S={players:[],scores:{},round:1}}
+  start()}
+function gate(){return`<div class="card"><b>Host a game</b><div class="mut">You enter the scores. Everyone else watches live.</div><button class="btn pri" data-g="host" style="margin-top:8px">Start new game</button></div>
+<div class="card"><b>Join a game</b><div class="mut">Watch the leaderboard on your own phone.</div><div class="row" style="margin-top:8px"><input class="txt" id="joinc" placeholder="Room code" maxlength="8" autocapitalize="characters"><button class="btn pri" data-g="join">Join</button></div></div>
+<div class="card"><b>Solo</b><div class="mut">Just this device, no syncing.</div><button class="btn" data-g="local" style="margin-top:8px">Use without sync</button></div>`}
+
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const cell=(pid,r)=>(S.scores[pid]&&S.scores[pid][r])||null;
+const rowTot=(pid,r)=>{const c=cell(pid,r);return c?COLS.reduce((a,[k])=>a+(Number(c[k])||0),0):0};
+const hasData=r=>S.players.some(p=>{const c=cell(p.id,r);return c&&COLS.some(([k])=>c[k]!==""&&c[k]!=null)});
+const latest=()=>{for(let r=10;r>=1;r--)if(hasData(r))return r;return 0};
+const totalThru=(pid,n)=>{let t=0;for(let r=1;r<=n;r++)t+=rowTot(pid,r);return t};
+function ranks(n){const l=S.players.map(p=>({id:p.id,t:totalThru(p.id,n)})).sort((a,b)=>b.t-a.t);
+  const m={};l.forEach((x,i)=>{m[x.id]=(i&&l[i-1].t===x.t)?m[l[i-1].id]:i+1});return{list:l,m}}
+
+function board(){
+  const L=latest();
+  if(!S.players.length)return'<div class="empty">Add players first, then enter scores.</div>';
+  if(!L)return'<div class="empty">No scores yet. Head to “Enter scores”.</div>';
+  const cur=ranks(L),prev=L>1?ranks(L-1):null;
+  let h=`<div class="mut" style="margin-bottom:8px">Standings after round ${L} of 10</div>`;
+  cur.list.forEach(x=>{
+    const p=S.players.find(q=>q.id===x.id),rk=cur.m[x.id];
+    let mv='<span class="fl">–</span>';
+    if(prev){const d=prev.m[x.id]-rk;mv=d>0?`<span class="up">▲${d}</span>`:d<0?`<span class="dn">▼${-d}</span>`:'<span class="fl">–</span>'}
+    let rows='';for(let r=1;r<=L;r++)rows+=`<tr><td>${r}</td>${COLS.map(([k])=>`<td>${(cell(p.id,r)||{})[k]||""}</td>`).join("")}<td><b>${rowTot(p.id,r)}</b></td></tr>`;
+    h+=`<div class="card ${openId===p.id?"open":""}" data-open="${p.id}"><div class="row"><div class="rank">${rk}</div><div class="nm">${esc(p.name)}</div><div class="mv">${mv}</div><div class="tot">${x.t}</div></div>
+    <div class="hist"><table><tr><th>Rd</th>${COLS.map(c=>`<th>${c[1]}</th>`).join("")}<th>Σ</th></tr>${rows}</table></div></div>`});
+  const pity=S.players.map(p=>({n:p.name,t:rowTot(p.id,L)})).sort((a,b)=>a.t-b.t);
+  h+=`<div class="card"><b>Pity die order, round ${L}</b><div class="mut">Lowest round score picks first</div><div class="pity">${pity.map((x,i)=>`<span>${i+1}. ${esc(x.n)} (${x.t})</span>`).join("")}</div></div>`;
+  h+=draftHtml(L);
+  return h}
+
+function pityHtml(r){
+  const l=S.players.map(p=>({n:p.name,t:rowTot(p.id,r)})).sort((a,b)=>a.t-b.t);
+  return`<div class="card"><b>Pity die order, round ${r}</b><div class="mut">Lowest round score picks first</div><div class="pity">${l.map((x,i)=>`<span>${i+1}. ${esc(x.n)} (${x.t})</span>`).join("")}</div></div>`}
+
+function draftHtml(r){
+  if(r>=10)return'';
+  const ys=S.players.map(p=>({n:p.name,y:Number((cell(p.id,r)||{}).y)||0})).sort((a,b)=>b.y-a.y);
+  let pos=0;
+  const items=ys.map((x,i)=>{if(!i||ys[i-1].y!==x.y)pos=i+1;return`<span>${pos}. ${esc(x.n)} (${x.y})</span>`}).join("");
+  return`<div class="card"><b>Draft order, round ${r+1}</b><div class="mut">Highest round ${r} yellow picks first. Ties share a number.</div><div class="pity dr">${items}</div></div>`}
+
+function score(){
+  if(!S.players.length)return'<div class="empty">Add players first.</div>';
+  let h='<div class="chips">';
+  for(let r=1;r<=10;r++)h+=`<button class="chip ${S.round===r?"on":""} ${hasData(r)?"has":""}" data-round="${r}">${r}</button>`;
+  h+='</div><div class="mut" style="margin-bottom:8px">Enter each column’s score for round '+S.round+' (as on the sheet).</div>';
+  h+='<div id="draft">'+pityHtml(S.round)+draftHtml(S.round)+'</div>';
+  S.players.forEach(p=>{
+    const c=cell(p.id,S.round)||{};
+    h+=`<div class="card"><div class="row"><div class="nm">${esc(p.name)}</div><div class="mut">Row total</div><div class="tot" id="t-${p.id}">${rowTot(p.id,S.round)}</div></div><div class="grid">`+
+    COLS.map(([k,s,n])=>`<div class="${k}"><label title="${n}">${s}</label><input type="${k==="r"?"text":"number"}" inputmode="numeric" data-p="${p.id}" data-k="${k}" value="${c[k]??""}">${k==="r"?`<button class="neg" data-neg="${p.id}">±</button>`:""}</div>`).join("")+'</div></div>'});
+  return h}
+
+function players(){
+  let h='<div class="card"><div class="row"><input class="txt" id="newp" placeholder="Player name" maxlength="20"><button class="btn pri" id="addp">Add</button></div></div>';
+  S.players.forEach(p=>{h+=`<div class="card row"><div class="nm">${esc(p.name)}</div><button class="btn" data-del="${p.id}">Remove</button></div>`});
+  h+='<div style="margin-top:14px"><button class="btn" id="reset">Reset game</button></div>';
+  return h}
+
+function render(){
+  if(ses.mode==="viewer")tab="board";
+  document.querySelector(".tabs").style.display=(ses.mode&&ses.mode!=="viewer")?"flex":"none";
+  document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("on",b.dataset.t===tab));
+  bar();
+  document.getElementById("app").innerHTML=!ses.mode?gate():tab==="board"?board():tab==="score"?score():players()}
+document.getElementById("bar").onclick=async e=>{
+  const k=e.target.dataset.b;
+  if(k==="leave"){if(es)es.close();clearInterval(poll);clearTimeout(timer);ses={mode:null,code:""};st="";saveSes();history.replaceState(null,"",location.pathname+location.search);load();ses={mode:null,code:""};render()}
+  if(k==="copy"){const u=location.href.split("#")[0]+"#"+ses.code;try{await navigator.clipboard.writeText(u);setSt("Link copied")}catch(x){prompt("Share this link:",u)}}};
+
+document.querySelector(".tabs").onclick=e=>{const t=e.target.dataset.t;if(t){tab=t;render()}};
+const app=document.getElementById("app");
+app.onclick=e=>{
+  const t=e.target;
+  if(t.dataset.neg){const i=app.querySelector('input[data-p="'+t.dataset.neg+'"][data-k="r"]');i.value=i.value.startsWith("-")?i.value.slice(1):"-"+i.value;i.dispatchEvent(new Event("input",{bubbles:true}));return}
+  if(t.dataset.round){S.round=+t.dataset.round;save();render();return}
+  if(t.dataset.g){
+    const g=t.dataset.g;
+    if(g==="host"){S={players:[],scores:{},round:1};ses={mode:"host",code:Math.random().toString(36).slice(2,7).toUpperCase()};tab="players";saveSes();save();start()}
+    if(g==="join"){const c=document.getElementById("joinc").value.toUpperCase().replace(/[^A-Z0-9]/g,"");if(!c)return;S={players:[],scores:{},round:1};ses={mode:"viewer",code:c};saveSes();start()}
+    if(g==="local"){ses={mode:"local",code:""};saveSes();start()}
+    return}
+  if(t.id==="addp"){const i=document.getElementById("newp"),n=i.value.trim();if(n){S.players.push({id:"p"+Date.now().toString(36)+Math.random().toString(36).slice(2,5),name:n});save();render()}return}
+  if(t.dataset.del){if(confirm("Remove this player and their scores?")){S.players=S.players.filter(p=>p.id!==t.dataset.del);delete S.scores[t.dataset.del];save();render()}return}
+  if(t.id==="reset"){if(confirm("Clear all players and scores?")){S={players:[],scores:{},round:1};save();render()}return}
+  const c=t.closest("[data-open]");if(c){openId=openId===c.dataset.open?null:c.dataset.open;render()}};
+app.oninput=e=>{
+  const t=e.target,p=t.dataset.p;if(!p)return;
+  S.scores[p]=S.scores[p]||{};S.scores[p][S.round]=S.scores[p][S.round]||{};
+  S.scores[p][S.round][t.dataset.k]=t.value;save();
+  const d=document.getElementById("draft");if(d)d.innerHTML=pityHtml(S.round)+draftHtml(S.round);
+  const el=document.getElementById("t-"+p);if(el)el.textContent=rowTot(p,S.round)};
+load();init();
+</script>
+</body>
+</html>
