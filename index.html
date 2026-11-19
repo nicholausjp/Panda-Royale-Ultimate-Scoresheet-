@@ -75,7 +75,7 @@ function norm(){S.players=(S.players||[]).filter(Boolean);S.scores=S.scores||{};
 function load(){try{const v=localStorage.getItem(KEY);if(v)S=JSON.parse(v);const q=localStorage.getItem(SESKEY);if(q)ses=JSON.parse(q);const a=localStorage.getItem("panda-auth");if(a)auth=JSON.parse(a)}catch(e){}norm()}
 function saveSes(){try{localStorage.setItem(SESKEY,JSON.stringify(ses))}catch(e){}}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
-const API_KEY="PASTE_YOUR_WEB_API_KEY_HERE";
+const API_KEY="AIzaSyAILyjVIFxJkp2c89nbZkSPzxBfM_BuyqA";
 let auth={uid:"",tok:"",ref:"",exp:0};
 function keepAuth(){try{localStorage.setItem("panda-auth",JSON.stringify(auth))}catch(e){}}
 async function token(){
