@@ -203,7 +203,7 @@ function render(){
   document.getElementById("app").innerHTML=!ses.mode?gate():(ses.mode==="player"&&!ses.pid)?who():tab==="board"?board():tab==="score"?score():players()}
 document.getElementById("bar").onclick=async e=>{
   const k=e.target.dataset.b;
-  if(k==="leave"){if(es)es.close();es=null;clearInterval(poll);ses={mode:null,code:"",pid:""};pre="";st="";S={players:[],scores:{},round:1};saveSes();save();history.replaceState(null,"",location.pathname+location.search);render()}
+  if(k==="leave"){if(k==="leave"){if(!confirm(ses.mode==="host"?"Leave this game? You can’t get back in as host.":"Leave this game?"))return;if(es)es.close();es=null;clearInterval(poll);ses={mode:null,code:"",pid:""};pre="";st="";S={players:[],scores:{},round:1};saveSes();save();history.replaceState(null,"",location.pathname+location.search);render()}
   if(k==="copy"){const u=location.href.split("#")[0]+"#"+ses.code;try{await navigator.clipboard.writeText(u);setSt("Link copied")}catch(x){prompt("Share this link:",u)}}};
 
 document.querySelector(".tabs").onclick=e=>{const t=e.target.dataset.t;if(t){tab=t;render()}};
